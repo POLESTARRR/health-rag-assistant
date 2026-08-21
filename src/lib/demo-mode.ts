@@ -1,12 +1,12 @@
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Public demo deployment: a separate Render service pointed at its own,
-// empty Supabase project seeded only with throwaway sample data. Setting
-// DEMO_MODE=true there signs every request in as one fixed demo account
-// instead of requiring a real login, so a resume link works with no signup
-// flow. The real family deployment never sets this, so this code path never
-// runs against real data.
-export const DEMO_MODE = process.env.DEMO_MODE === "true";
+// One single flag, read the same way on the server and in the browser.
+// An earlier version used two separate flags (one server only, one public)
+// and they drifted out of sync, leaving the demo banner showing on the real,
+// login required site while the server itself was not actually in demo
+// mode. NEXT_PUBLIC_ variables are readable on the server too, so there is
+// no reason to keep a second one around.
+export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 let cachedClient: SupabaseClient | null = null;
 let cachedExpiresAt = 0;
