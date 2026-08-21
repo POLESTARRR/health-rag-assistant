@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MetricChart, type Point } from "@/components/MetricChart";
 import { PersonShowcase } from "@/components/PersonShowcase";
-import { DemoBanner } from "@/components/DemoBanner";
 
 const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
@@ -90,8 +89,6 @@ export default function Home() {
           )}
         </nav>
       </div>
-
-      <DemoBanner />
 
       <div className="mt-6">
         <PersonShowcase people={people} selectedId={personId} onSelect={setPersonId} />
