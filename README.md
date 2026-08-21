@@ -1,12 +1,17 @@
 # Health Assistant
 
+**Live:** [health-rag-assistant.onrender.com](https://health-rag-assistant.onrender.com)
+
 Upload monthly health documents (lab reports, doctor's notes, imaging reports, vitals logs) for a
 family member. It extracts structured values, tracks trends month over month, generates a
 plain-language monthly digest of what improved or worsened, and lets you ask questions across the
 full history with a RAG chat assistant.
 
-Everything runs on free tiers: **Next.js on Vercel** plus **Supabase** (Postgres/pgvector, Storage,
+Everything runs on free tiers: **Next.js on Render** plus **Supabase** (Postgres/pgvector, Storage,
 Auth) plus the **Google Gemini API**.
+
+The live version sleeps after 15 minutes of no traffic since it runs on Render's free tier. The
+first visit after that can take 30 to 60 seconds to wake back up. That is expected and not a bug.
 
 ## 1. Create a Supabase project (free)
 
@@ -18,7 +23,7 @@ Auth) plus the **Google Gemini API**.
    - `anon public` key into `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` key into `SUPABASE_SERVICE_ROLE_KEY` (server only, never expose it to the browser)
 5. In **Authentication > Providers**, make sure **Email** is enabled with the magic link (OTP) flow. Family members do not need a password. They just get an email link to sign in.
-6. In **Authentication > URL Configuration**, add your deployed URL and `http://localhost:3000` to the Redirect URLs list. For example `https://your-app.vercel.app/auth/callback`.
+6. In **Authentication > URL Configuration**, add your deployed URL and `http://localhost:3000` to the Redirect URLs list. For example `https://your-app.onrender.com/auth/callback`.
 
 There is no invite or signup flow. Anyone with access to the Supabase Auth dashboard can add allowed
 emails under Authentication > Users > Add user, since this is meant to be a small private family
@@ -62,12 +67,13 @@ works on your machine.
 To get real emails in production, configure custom SMTP under **Project Settings > Authentication >
 SMTP Settings**. A free Resend or Brevo account is enough and removes the rate limit.
 
-## 4. Deploy to Vercel (free)
+## 4. Deploy to Render (free)
 
 1. Push this repo to GitHub.
-2. Go to [vercel.com/new](https://vercel.com/new) and import the repo.
-3. Add the same 4 environment variables from `.env.local` in the Vercel project settings.
-4. Deploy. Once it is live, add the deployed URL's `/auth/callback` path to the Supabase Redirect URLs from step 1.6.
+2. Go to [dashboard.render.com](https://dashboard.render.com) and create a new Web Service from the repo.
+3. Set the build command to `npm run build` and the start command to `npm start`. Pick the free instance type.
+4. Add the same 4 environment variables from `.env.local` in the Render project settings.
+5. Deploy. Once it is live, add the deployed URL's `/auth/callback` path to the Supabase Redirect URLs from step 1.6, alongside the localhost one. Keep both, since local development still needs the localhost entry.
 
 ## How it works
 
