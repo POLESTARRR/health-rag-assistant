@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MetricChart, type Point } from "@/components/MetricChart";
 import { PersonShowcase } from "@/components/PersonShowcase";
+import { DemoBanner } from "@/components/DemoBanner";
+
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 interface Person {
   id: string;
@@ -80,11 +83,15 @@ export default function Home() {
           <Link href="/chat" className="text-neutral-600 hover:text-neutral-900">
             Chat
           </Link>
-          <form action="/auth/signout" method="post">
-            <button className="text-neutral-600 hover:text-neutral-900">Sign out</button>
-          </form>
+          {!IS_DEMO && (
+            <form action="/auth/signout" method="post">
+              <button className="text-neutral-600 hover:text-neutral-900">Sign out</button>
+            </form>
+          )}
         </nav>
       </div>
+
+      <DemoBanner />
 
       <div className="mt-6">
         <PersonShowcase people={people} selectedId={personId} onSelect={setPersonId} />

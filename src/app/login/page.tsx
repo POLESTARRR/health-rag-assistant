@@ -1,8 +1,10 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+const IS_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 // Auth routes redirect back here with ?error=... when a sign-in link fails,
 // so the failure is visible instead of looking like a silent bounce.
@@ -13,9 +15,16 @@ function LinkError() {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  // The demo deployment signs every visitor in on the server automatically,
+  // so there is nothing to log in to here.
+  useEffect(() => {
+    if (IS_DEMO) router.replace("/");
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
