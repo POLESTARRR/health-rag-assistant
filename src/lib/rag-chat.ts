@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { getGeminiClient, GEMINI_MODEL, embedText } from "@/lib/gemini";
+import { getGeminiClient, GEMINI_MODEL, embedText, withGeminiRetry } from "@/lib/gemini";
 
 interface MatchedChunk {
   id: string;
@@ -37,23 +37,25 @@ export async function askRagChat(personId: string, sessionId: string, question: 
     .join("\n\n---\n\n");
 
   const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: SYSTEM_PROMPT }],
-      },
-      ...(history ?? []).map((m) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-      {
-        role: "user",
-        parts: [{ text: `CONTEXT FROM DOCUMENTS:\n${contextText}\n\nQUESTION: ${question}` }],
-      },
-    ],
-  });
+  const response = await withGeminiRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: SYSTEM_PROMPT }],
+        },
+        ...(history ?? []).map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        {
+          role: "user",
+          parts: [{ text: `CONTEXT FROM DOCUMENTS:\n${contextText}\n\nQUESTION: ${question}` }],
+        },
+      ],
+    }),
+  );
 
   const answer = response.text ?? "I couldn't generate a response.";
 

@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { getGeminiClient, GEMINI_MODEL, embedText } from "@/lib/gemini";
+import { getGeminiClient, GEMINI_MODEL, embedText, withGeminiRetry } from "@/lib/gemini";
 import { chunkText } from "@/lib/chunk-text";
 import { DOCUMENTS_BUCKET } from "@/lib/constants";
 
@@ -84,19 +84,21 @@ export async function parseDocument(documentId: string) {
     const mimeType = fileBlob.type || "application/pdf";
 
     const ai = getGeminiClient();
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        {
-          role: "user",
-          parts: [{ inlineData: { mimeType, data: base64Data } }, { text: EXTRACTION_PROMPT }],
+    const response = await withGeminiRetry(() =>
+      ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [
+          {
+            role: "user",
+            parts: [{ inlineData: { mimeType, data: base64Data } }, { text: EXTRACTION_PROMPT }],
+          },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema,
         },
-      ],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema,
-      },
-    });
+      }),
+    );
 
     const raw = response.text;
     if (!raw) throw new Error("Gemini returned an empty response");

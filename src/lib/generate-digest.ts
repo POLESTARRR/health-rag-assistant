@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { getGeminiClient, GEMINI_MODEL } from "@/lib/gemini";
+import { getGeminiClient, GEMINI_MODEL, withGeminiRetry } from "@/lib/gemini";
 
 const DIGEST_PROMPT = `You are a careful, plain-language health summarizer helping a family understand a loved one's monthly health reports. You are NOT a doctor and must not diagnose or prescribe. Always defer to their real doctor for decisions.
 
@@ -106,19 +106,21 @@ export async function generateMonthlyDigest(personId: string, reportMonth: strin
   const notes = (docs ?? []).map((d) => d.raw_text).filter(Boolean).join("\n\n---\n\n").slice(0, 8000);
 
   const ai = getGeminiClient();
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: DIGEST_PROMPT },
-          { text: `\n\nDATA:\n${JSON.stringify({ metrics: history, notes }, null, 2)}` },
-        ],
-      },
-    ],
-    config: { responseMimeType: "application/json", responseSchema },
-  });
+  const response = await withGeminiRetry(() =>
+    ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: DIGEST_PROMPT },
+            { text: `\n\nDATA:\n${JSON.stringify({ metrics: history, notes }, null, 2)}` },
+          ],
+        },
+      ],
+      config: { responseMimeType: "application/json", responseSchema },
+    }),
+  );
 
   const raw = response.text;
   if (!raw) throw new Error("Gemini returned an empty response");
