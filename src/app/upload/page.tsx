@@ -15,6 +15,15 @@ interface QueueItem {
   error?: string;
 }
 
+interface UploadedDocument {
+  id: string;
+  original_filename: string;
+  report_month: string;
+  doc_type: string | null;
+  parse_status: "pending" | "parsed" | "failed";
+  uploaded_at: string;
+}
+
 function currentMonthValue() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -37,6 +46,8 @@ export default function UploadPage() {
   const [newPersonName, setNewPersonName] = useState("");
   const [month, setMonth] = useState(currentMonthValue());
   const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/people")
@@ -46,6 +57,35 @@ export default function UploadPage() {
         if (d.people?.length) setPersonId(d.people[0].id);
       });
   }, []);
+
+  const loadDocuments = useCallback(() => {
+    if (!personId) {
+      setDocuments([]);
+      return;
+    }
+    fetch(`/api/documents?person_id=${personId}`)
+      .then((r) => r.json())
+      .then((d) => setDocuments(d.documents ?? []));
+  }, [personId]);
+
+  useEffect(() => {
+    loadDocuments();
+  }, [loadDocuments]);
+
+  async function removeDocument(doc: UploadedDocument) {
+    const monthLabel = `${MONTH_NAMES[Number(doc.report_month.slice(5, 7)) - 1]} ${doc.report_month.slice(0, 4)}`;
+    if (!confirm(`Remove "${doc.original_filename}" (${monthLabel})? This cannot be undone.`)) return;
+
+    setRemovingId(doc.id);
+    const res = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" });
+    setRemovingId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(`Could not remove that document: ${data.error ?? "unknown error"}`);
+      return;
+    }
+    loadDocuments();
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setQueue((q) => [...q, ...acceptedFiles.map((file) => ({ file, status: "queued" as const }))]);
@@ -94,6 +134,7 @@ export default function UploadPage() {
         if (!parseRes.ok) throw new Error(parseData.error ?? "parse failed");
 
         setQueue((q) => q.map((item, idx) => (idx === i ? { ...item, status: "done" } : item)));
+        loadDocuments();
       } catch (err) {
         setQueue((q) =>
           q.map((item, idx) =>
@@ -209,6 +250,39 @@ export default function UploadPage() {
         >
           Upload & process {queue.filter((i) => i.status === "queued").length} file(s)
         </button>
+      )}
+
+      {documents.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-sm font-medium text-neutral-700">Already uploaded</h2>
+          <ul className="mt-2 space-y-2">
+            {documents.map((doc) => {
+              const monthLabel = `${MONTH_NAMES[Number(doc.report_month.slice(5, 7)) - 1]} ${doc.report_month.slice(0, 4)}`;
+              return (
+                <li
+                  key={doc.id}
+                  className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-neutral-800">{doc.original_filename}</p>
+                    <p className="text-xs text-neutral-500">
+                      {monthLabel}
+                      {doc.parse_status === "failed" && <span className="text-red-600"> · parse failed</span>}
+                      {doc.parse_status === "pending" && <span> · parsing…</span>}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removeDocument(doc)}
+                    disabled={removingId === doc.id}
+                    className="ml-3 shrink-0 text-xs text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    {removingId === doc.id ? "Removing…" : "Remove"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </div>
   );
