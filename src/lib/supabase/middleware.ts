@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { DEMO_MODE } from "@/lib/demo-mode";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/confirm"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/confirm", "/auth/session"];
 
 export async function updateSession(request: NextRequest) {
   // No real visitor session to refresh or gate here. src/lib/supabase/server.ts
