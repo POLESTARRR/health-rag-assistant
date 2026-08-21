@@ -20,6 +20,17 @@ function currentMonthValue() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+// Native <input type="month"> year navigation is a native picker quirk that
+// varies by browser (Safari's in particular buries older years), so plain
+// dropdowns are used instead, going back far enough for older reports.
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 16 }, (_, i) => CURRENT_YEAR - i);
+
 export default function UploadPage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [personId, setPersonId] = useState<string>("");
@@ -126,12 +137,36 @@ export default function UploadPage() {
 
         <div>
           <label className="block text-sm font-medium text-neutral-700">Report month</label>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-          />
+          <div className="mt-1 flex gap-2">
+            <select
+              value={Number(month.split("-")[1])}
+              onChange={(e) => {
+                const [year] = month.split("-");
+                setMonth(`${year}-${e.target.value.padStart(2, "0")}`);
+              }}
+              className="w-1/2 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              {MONTH_NAMES.map((name, i) => (
+                <option key={name} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={month.split("-")[0]}
+              onChange={(e) => {
+                const [, monthPart] = month.split("-");
+                setMonth(`${e.target.value}-${monthPart}`);
+              }}
+              className="w-1/2 rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            >
+              {YEAR_OPTIONS.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
